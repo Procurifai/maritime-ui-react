@@ -1,0 +1,48 @@
+name: component-manifest
+
+on:
+  pull_request:
+    paths:
+      - 'packages/maritime-ui/src/**/*.tsx'
+      - 'packages/maritime-ui/components.manifest.json'
+      - 'scripts/build-component-manifest.mjs'
+      - '.github/workflows/component-manifest.yml'
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  drift:
+    name: manifest is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20.18.0'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Snapshot committed manifest
+        run: cp packages/maritime-ui/components.manifest.json /tmp/committed.json
+
+      - name: Regenerate manifest
+        run: |
+          node scripts/build-component-manifest.mjs
+          npx prettier --write packages/maritime-ui/components.manifest.json
+
+      - name: Diff
+        run: |
+          if ! diff -q /tmp/committed.json packages/maritime-ui/components.manifest.json > /dev/null; then
+            echo "::error::components.manifest.json is out of date. Run 'npm run manifest' locally and commit the result."
+            diff -u /tmp/committed.json packages/maritime-ui/components.manifest.json || true
+            exit 1
+          fi
+          echo "✓ Manifest is current."

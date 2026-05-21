@@ -1,0 +1,186 @@
+/*
+ * @procurifai/maritime-ui — theme tokens.
+ *
+ * Layout:
+ *   1. [data-mu-theme="..."] blocks → palette definitions per IEC 62288.
+ *   2. Plain-CSS utility classes (.bg-mu-*, .text-mu-*, .border-mu-*).
+ *      Components use these directly so the library works without Tailwind.
+ *
+ * Consumers using Tailwind 4 can additionally declare these as Tailwind
+ * tokens by adding to their app's CSS:
+ *
+ *   @theme {
+ *     --color-mu-surface:           rgb(var(--mu-color-surface));
+ *     --color-mu-on-surface:        rgb(var(--mu-color-text-primary));
+ *     --color-mu-accent:            rgb(var(--mu-color-accent-primary));
+ *     --color-mu-status-safe:       rgb(var(--mu-color-status-safe));
+ *     --color-mu-status-caution:    rgb(var(--mu-color-status-caution));
+ *     --color-mu-status-warning:    rgb(var(--mu-color-status-warning));
+ *     --color-mu-status-alarm:      rgb(var(--mu-color-status-alarm));
+ *   }
+ *
+ * which enables `hover:bg-mu-surface`, `bg-mu-status-alarm/50`, etc.
+ *
+ * To override a built-in palette, declare any `--mu-*` variable in your own
+ * stylesheet AFTER importing this file.
+ */
+
+/* Default palette (dusk — sensible default for control-room software). */
+:root,
+[data-mu-theme='dusk'] {
+  --mu-color-bg-primary: 16 28 48;
+  --mu-color-surface: 32 48 72;
+  --mu-color-surface-raised: 44 62 90;
+  --mu-color-text-primary: 220 230 245;
+  --mu-color-text-secondary: 160 180 205;
+  --mu-color-border: 60 84 116;
+  --mu-color-accent-primary: 0 163 224;
+  --mu-color-accent-hover: 32 184 240;
+  --mu-color-on-accent: 255 255 255;
+  --mu-color-status-safe: 64 200 132;
+  --mu-color-status-caution: 240 200 80;
+  --mu-color-status-warning: 240 140 60;
+  --mu-color-status-alarm: 220 60 60;
+  --mu-color-status-inactive: 110 130 155;
+  --mu-shadow-card: 0 2px 8px rgb(0 0 0 / 0.32);
+}
+
+[data-mu-theme='day'] {
+  --mu-color-bg-primary: 244 246 250;
+  --mu-color-surface: 255 255 255;
+  --mu-color-surface-raised: 250 252 255;
+  --mu-color-text-primary: 18 28 42;
+  --mu-color-text-secondary: 88 102 122;
+  --mu-color-border: 200 210 224;
+  --mu-color-accent-primary: 0 102 184;
+  --mu-color-accent-hover: 0 122 204;
+  --mu-color-on-accent: 255 255 255;
+  --mu-color-status-safe: 24 152 92;
+  --mu-color-status-caution: 200 152 0;
+  --mu-color-status-warning: 220 108 24;
+  --mu-color-status-alarm: 196 28 28;
+  --mu-color-status-inactive: 152 164 180;
+  --mu-shadow-card: 0 2px 6px rgb(0 0 0 / 0.08);
+}
+
+[data-mu-theme='night'] {
+  --mu-color-bg-primary: 8 4 4;
+  --mu-color-surface: 24 8 8;
+  --mu-color-surface-raised: 40 12 12;
+  --mu-color-text-primary: 220 96 96;
+  --mu-color-text-secondary: 160 64 64;
+  --mu-color-border: 80 24 24;
+  --mu-color-accent-primary: 200 60 60;
+  --mu-color-accent-hover: 220 80 80;
+  --mu-color-on-accent: 8 4 4;
+  --mu-color-status-safe: 160 80 80;
+  --mu-color-status-caution: 200 100 60;
+  --mu-color-status-warning: 220 80 40;
+  --mu-color-status-alarm: 240 40 40;
+  --mu-color-status-inactive: 96 40 40;
+  --mu-shadow-card: 0 1px 3px rgb(0 0 0 / 0.6);
+}
+
+[data-mu-theme='bright'] {
+  --mu-color-bg-primary: 255 255 255;
+  --mu-color-surface: 248 250 252;
+  --mu-color-surface-raised: 240 244 248;
+  --mu-color-text-primary: 0 0 0;
+  --mu-color-text-secondary: 32 40 56;
+  --mu-color-border: 100 116 140;
+  --mu-color-accent-primary: 0 76 152;
+  --mu-color-accent-hover: 0 96 184;
+  --mu-color-on-accent: 255 255 255;
+  --mu-color-status-safe: 0 116 56;
+  --mu-color-status-caution: 184 132 0;
+  --mu-color-status-warning: 200 84 0;
+  --mu-color-status-alarm: 176 0 0;
+  --mu-color-status-inactive: 112 128 148;
+  --mu-shadow-card: 0 2px 4px rgb(0 0 0 / 0.16);
+}
+
+/* --- Utility classes (work with or without Tailwind) --- */
+
+.bg-mu-bg-primary {
+  background-color: rgb(var(--mu-color-bg-primary));
+}
+.bg-mu-surface {
+  background-color: rgb(var(--mu-color-surface));
+}
+.bg-mu-surface-raised {
+  background-color: rgb(var(--mu-color-surface-raised));
+}
+.bg-mu-accent {
+  background-color: rgb(var(--mu-color-accent-primary));
+}
+.hover\:bg-mu-accent-hover:hover {
+  background-color: rgb(var(--mu-color-accent-hover));
+}
+.bg-mu-status-safe {
+  background-color: rgb(var(--mu-color-status-safe));
+}
+.bg-mu-status-caution {
+  background-color: rgb(var(--mu-color-status-caution));
+}
+.bg-mu-status-warning {
+  background-color: rgb(var(--mu-color-status-warning));
+}
+.bg-mu-status-alarm {
+  background-color: rgb(var(--mu-color-status-alarm));
+}
+.bg-mu-status-inactive {
+  background-color: rgb(var(--mu-color-status-inactive));
+}
+
+.text-mu-primary {
+  color: rgb(var(--mu-color-text-primary));
+}
+.text-mu-secondary {
+  color: rgb(var(--mu-color-text-secondary));
+}
+.text-mu-on-accent {
+  color: rgb(var(--mu-color-on-accent));
+}
+.text-mu-status-safe {
+  color: rgb(var(--mu-color-status-safe));
+}
+.text-mu-status-caution {
+  color: rgb(var(--mu-color-status-caution));
+}
+.text-mu-status-warning {
+  color: rgb(var(--mu-color-status-warning));
+}
+.text-mu-status-alarm {
+  color: rgb(var(--mu-color-status-alarm));
+}
+
+.border-mu {
+  border-color: rgb(var(--mu-color-border));
+}
+.border-mu-accent {
+  border-color: rgb(var(--mu-color-accent-primary));
+}
+
+.shadow-mu-card {
+  box-shadow: var(--mu-shadow-card);
+}
+
+/* Alarm blink — animation respects prefers-reduced-motion. */
+@keyframes mu-alarm-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.4;
+  }
+}
+.animate-mu-alarm-blink {
+  animation: mu-alarm-blink 0.9s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-mu-alarm-blink {
+    animation: none;
+  }
+}

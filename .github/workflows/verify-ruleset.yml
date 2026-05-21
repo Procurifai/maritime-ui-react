@@ -1,0 +1,169 @@
+# verify-ruleset — drift detector for `.github/rulesets/main.yml` (+ vendored
+# `.github/rulesets/baseline.yml`) vs live GitHub state.
+#
+# Copy to {repo}/.github/workflows/verify-ruleset.yml. Bootstrapped by
+# `apply-governance-baseline.py --bootstrap` alongside main.yml + baseline.yml.
+#
+# Strategy reference: guides/guide-027-governance-as-code.md
+# Parity enforcement: /review-code Rule 29
+#
+# Triggers:
+#   - pull_request — fires on EVERY PR (no path filter). The workflow is itself
+#     a required status check via baseline.yml, so it must report on every PR
+#     or merges sit in "Expected — Waiting for status" forever.
+#   - cron (Monday 07:00 UTC) — passive drift detection for repos with no PR
+#     activity.
+#   - workflow_dispatch — manual re-run.
+#
+# Check semantic: FULL EQUALITY between the merged YAML (baseline + override)
+# and live ruleset's `required_status_checks` contexts. Live having extras OR
+# missing entries both fail. Catches all four drift directions:
+#   - Removed primary check from live → fails
+#   - Removed baseline-inherited verify check from live → fails
+#   - Added a context to live not declared in YAML → fails
+#   - YAML and live agree → passes
+#
+# The vendored baseline.yml is updated alongside main.yml by every
+# `apply-governance-baseline.py --apply` sweep — see write_baseline_yaml_to_repo
+# in that script.
+
+name: verify-ruleset
+
+on:
+  pull_request: # every PR — required check per baseline.yml
+  schedule:
+    - cron: '0 7 * * 1' # Monday 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify ruleset matches main.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install ruamel.yaml
+
+      - name: Verify ruleset drift (YAML vs live)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          python3 <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          from ruamel.yaml import YAML
+
+          owner = os.environ["OWNER"]
+          repo = os.environ["REPO"]
+          yaml = YAML(typ="safe")
+
+          # 1. Read vendored baseline + repo-specific override.
+          main_path = Path(".github/rulesets/main.yml")
+          baseline_path = Path(".github/rulesets/baseline.yml")
+          if not main_path.exists():
+              print("::error::Missing .github/rulesets/main.yml — repo not bootstrapped.")
+              sys.exit(1)
+          if not baseline_path.exists():
+              print("::error::Missing .github/rulesets/baseline.yml — repo's vendored copy is missing.")
+              print("::error::Run apply-governance-baseline.py --bootstrap --owner $OWNER --repo $REPO to install.")
+              sys.exit(1)
+
+          with main_path.open() as fh:
+              override = yaml.load(fh) or {}
+          with baseline_path.open() as fh:
+              baseline = yaml.load(fh) or {}
+
+          # 2. Inline merge (additive for required_status_checks contexts;
+          # replace for other rules). Mirrors merge_ruleset_yaml in
+          # apply-governance-baseline.py — kept in lockstep with that function.
+          def merge(baseline, override):
+              result = {k: v for k, v in baseline.items() if k != "extends"}
+              for key, value in override.items():
+                  if key in ("extends", "rules"):
+                      continue
+                  result[key] = value
+              base_rules = list(result.get("rules") or [])
+              override_rules = list(override.get("rules") or [])
+              base_by_type = {r["type"]: i for i, r in enumerate(base_rules)}
+              for ovr in override_rules:
+                  rt = ovr.get("type")
+                  if not rt:
+                      continue
+                  if rt in base_by_type:
+                      if rt == "required_status_checks":
+                          # Additive merge for contexts, override-wins for other params.
+                          base = base_rules[base_by_type[rt]]
+                          base_p = base.get("parameters") or {}
+                          ovr_p = ovr.get("parameters") or {}
+                          base_c = base_p.get("required_status_checks") or []
+                          ovr_c = ovr_p.get("required_status_checks") or []
+                          seen = set()
+                          merged_c = []
+                          for c in list(base_c) + list(ovr_c):
+                              n = c.get("context")
+                              if n and n not in seen:
+                                  seen.add(n)
+                                  merged_c.append(c)
+                          merged_p = {**base_p, **ovr_p}
+                          merged_p["required_status_checks"] = merged_c
+                          base_rules[base_by_type[rt]] = {"type": rt, "parameters": merged_p}
+                      else:
+                          base_rules[base_by_type[rt]] = ovr
+                  else:
+                      base_rules.append(ovr)
+                      base_by_type[rt] = len(base_rules) - 1
+              result["rules"] = base_rules
+              return result
+
+          merged = merge(baseline, override)
+          expected = []
+          for r in merged.get("rules", []):
+              if r.get("type") == "required_status_checks":
+                  expected = [c.get("context") for c in (r.get("parameters") or {}).get("required_status_checks", []) if "context" in c]
+                  break
+
+          # 3. Fetch live ruleset state via gh CLI (workflow GITHUB_TOKEN).
+          def gh(args):
+              return subprocess.run(["gh"] + args, capture_output=True, text=True, check=True)
+
+          rs_list = json.loads(gh(["api", f"repos/{owner}/{repo}/rulesets"]).stdout)
+          target = next((r for r in rs_list if r.get("name") == "Protect main"), None)
+          if target is None:
+              print("::error::No ruleset named 'Protect main' on live state.")
+              sys.exit(1)
+
+          live = json.loads(gh(["api", f"repos/{owner}/{repo}/rulesets/{target['id']}"]).stdout)
+          live_contexts = []
+          for r in live.get("rules", []):
+              if r.get("type") == "required_status_checks":
+                  live_contexts = [c.get("context") for c in (r.get("parameters") or {}).get("required_status_checks", []) if "context" in c]
+                  break
+
+          # 4. Full equality (catches both removal and addition).
+          expected_set = set(expected)
+          live_set = set(live_contexts)
+          missing_in_live = sorted(expected_set - live_set)
+          extra_in_live = sorted(live_set - expected_set)
+
+          print(f"Expected (YAML merged): {sorted(expected_set)}")
+          print(f"Live state:             {sorted(live_set)}")
+          if missing_in_live or extra_in_live:
+              if missing_in_live:
+                  print(f"::error::Missing in live state (declared in YAML but not enforced): {missing_in_live}")
+              if extra_in_live:
+                  print(f"::error::Extra in live state (enforced but not declared in YAML): {extra_in_live}")
+              print(f"::error::Run 'apply-governance-baseline.py --apply --owner {owner} --repo {repo}' to sync.")
+              sys.exit(1)
+          print("✓ YAML (baseline + override) and live state match.")
+          PY

@@ -1,0 +1,70 @@
+# Org-wide baseline ruleset rules shared by every repo under Procurifai/* (and LOP-temp/*).
+#
+# Per-repo .github/rulesets/main.yml files declare `extends: org-baseline` to
+# inherit these rules. Repo-specific overrides (the autodetected primary
+# required check + any extras) are spelled out in the repo file. `extends`
+# merge semantics are SHALLOW BY RULE TYPE: a rule type declared in the repo
+# YAML REPLACES the same rule type from this baseline (it does not merge
+# parameters). bypass_actors, conditions, enforcement are also REPLACED
+# wholesale when declared in the repo file. See guide-027 § "Schema reference".
+#
+# Source-of-truth for this file is procurifai-cli/scripts/rulesets/baseline.yml.
+# The bundled-data copy at cli/src/procurifai_cli/data/scripts/rulesets/baseline.yml
+# is auto-synced by scripts/sync-package-data.sh on every commit.
+
+name: 'Protect main'
+target: branch
+enforcement: active
+conditions:
+  ref_name:
+    include: ['~DEFAULT_BRANCH']
+    exclude: []
+
+# Admins can override at any time. Documented footgun — see KB learning
+# `EhstFTE5kEoPwBj8SFQB`. Hardening to `bypass_mode: pull_request` is on a
+# separate track and not blocked by this scope.
+bypass_actors:
+  - actor_type: RepositoryRole
+    actor_id: 5 # admin role
+    bypass_mode: always
+
+rules:
+  - type: deletion
+  - type: non_fast_forward
+  - type: pull_request
+    parameters:
+      required_approving_review_count: 0
+      dismiss_stale_reviews_on_push: true
+      require_code_owner_review: false
+      require_last_push_approval: false
+      required_review_thread_resolution: false
+      required_reviewers: []
+      allowed_merge_methods:
+        - merge
+        - squash
+        - rebase
+
+  # Org-wide drift detector: every active repo gets this as a required check
+  # via `extends: org-baseline`. The script's additive merge for
+  # required_status_checks (see merge_ruleset_yaml) keeps this entry alongside
+  # whatever the repo's main.yml declares for its primary CI gate. Removing
+  # this context from a repo's live ruleset (via UI or direct gh api PUT)
+  # makes ALL PRs against that repo fail merge until the YAML drift is
+  # reconciled — the canonical "fail-closed" enforcement of the YAML
+  # source-of-truth contract.
+  #
+  # Per-repo .github/workflows/verify-ruleset.yml fires on every PR and
+  # reports under this exact context name. Skip-workflow siblings aren't
+  # required because the workflow has no path filter (every PR triggers it).
+  - type: required_status_checks
+    parameters:
+      strict_required_status_checks_policy: false
+      do_not_enforce_on_create: false
+      required_status_checks:
+        - context: 'Verify ruleset matches main.yml'
+
+  # Repos that need extra path-gated required checks (e.g. platform-api's
+  # `Cloud Build (import smoke gate)`) declare them in their own main.yml.
+  # The additive merge combines the baseline context above with the per-repo
+  # contexts. Pair each extra context with a skip-workflow sibling — see
+  # guide-027 § "Skip-workflow sibling pattern".

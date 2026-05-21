@@ -1,0 +1,14 @@
+node_modules/
+dist/
+storybook-static/
+coverage/
+.turbo/
+.changeset/.cache/
+*.log
+.DS_Store
+.env*
+!.env.example
+
+# Astro
+landing/.astro/
+landing/dist/
