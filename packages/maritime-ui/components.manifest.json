@@ -1,0 +1,65 @@
+{
+  "$schema": "https://maritime.ui/schemas/components.manifest.json",
+  "totalCount": 4,
+  "components": [
+    {
+      "name": "Badge",
+      "description": "Badge — compact status-or-category label. Pure visual primitive (no behaviour). Five severity variants (safe / caution / warning / alarm / neutral) and two sizes (sm / md).",
+      "category": "indicators",
+      "propsSummary": [
+        "variant",
+        "size"
+      ],
+      "importLine": "import { Badge } from '@procurifai/maritime-ui/badge';",
+      "barrelImportLine": "import { Badge } from '@procurifai/maritime-ui';",
+      "sourcePath": "packages/maritime-ui/src/badge/Badge.tsx",
+      "hasStories": true,
+      "hasTest": true
+    },
+    {
+      "name": "Button",
+      "description": "Button — the canonical interactive primitive. Four variants (primary / secondary / ghost / danger) and three sizes (sm / md / lg). Supports a loading state and `asChild` (via Radix Slot) for polymorphic rendering as any element.",
+      "category": "buttons",
+      "propsSummary": [
+        "variant",
+        "size",
+        "loading",
+        "asChild"
+      ],
+      "importLine": "import { Button } from '@procurifai/maritime-ui/button';",
+      "barrelImportLine": "import { Button } from '@procurifai/maritime-ui';",
+      "sourcePath": "packages/maritime-ui/src/button/Button.tsx",
+      "hasStories": true,
+      "hasTest": true
+    },
+    {
+      "name": "Card",
+      "description": "Card — surface primitive for grouping related content. Compound API: render `<Card.Header>`, `<Card.Body>`, `<Card.Footer>` as children to slot into the predefined layout. Variants control elevation: `elevated` (default) lifts above the page background; `flat` sits inline.",
+      "category": "cards",
+      "propsSummary": [
+        "variant"
+      ],
+      "importLine": "import { Card } from '@procurifai/maritime-ui/card';",
+      "barrelImportLine": "import { Card } from '@procurifai/maritime-ui';",
+      "sourcePath": "packages/maritime-ui/src/card/Card.tsx",
+      "hasStories": true,
+      "hasTest": true
+    },
+    {
+      "name": "StatusIndicator",
+      "description": "StatusIndicator — coloured dot signalling a discrete state. Five states (safe / caution / warning / alarm / inactive) per IEC 62288's severity ladder. `blink` opt-in adds a 0.9s blink loop (alarm only, respecting `prefers-reduced-motion`). The container sets `aria-live` so screen readers announce state changes when the consumer flips status.",
+      "category": "indicators",
+      "propsSummary": [
+        "status",
+        "label",
+        "blink",
+        "dotSize"
+      ],
+      "importLine": "import { StatusIndicator } from '@procurifai/maritime-ui/status-indicator';",
+      "barrelImportLine": "import { StatusIndicator } from '@procurifai/maritime-ui';",
+      "sourcePath": "packages/maritime-ui/src/status-indicator/StatusIndicator.tsx",
+      "hasStories": true,
+      "hasTest": true
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+# actionlint — static checker for GitHub Actions workflow files
+#
+# Copy to {repo}/.github/workflows/actionlint.yml. Pair with the matcher JSON
+# at {repo}/.github/actionlint-matcher.json (also distributed via this repo's
+# scripts/actionlint-matcher.json — bootstrap writes both atomically).
+#
+# Strategy reference: guides/guide-025-workflow-linting.md
+# Parity enforcement: /review-code Rule 26
+#
+# Pin the actionlint version explicitly. Bump the pin in this template, then
+# propagate via `python3 apply-governance-baseline.py --apply` (overwrite path)
+# or open a sweep PR. The pinned version is the ONLY version actionlint will
+# install — no `latest` drift, no surprise schema deltas mid-PR.
+
+name: actionlint
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.github/actionlint.yaml'
+      - '.github/actionlint-matcher.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.github/actionlint.yaml'
+      - '.github/actionlint-matcher.json'
+
+permissions:
+  contents: read
+
+env:
+  # Force JavaScript GitHub Actions to run on Node 24 ahead of the
+  # September 16, 2026 Node 20 removal deadline. Org-wide convention —
+  # mirrors every other workflow in the fleet.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  actionlint:
+    name: Lint workflow YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Register problem matcher
+        run: echo "::add-matcher::.github/actionlint-matcher.json"
+
+      - name: Download actionlint
+        id: get_actionlint
+        run: bash <(curl -sf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.12
+        shell: bash
+
+      - name: Run actionlint
+        # shellcheck severity policy: errors + warnings block PRs; info + style
+        # don't. Most `run:` blocks have unquoted `$VAR` patterns (SC2086) and
+        # multi-redirect style hits (SC2129) that aren't real bugs in the GHA
+        # context where `${{ ... }}` is pre-substituted. Capturing them at info
+        # level produces ~50 findings per active repo with no real defects;
+        # filtering to warning+ keeps actionlint's bug-catching value without
+        # the noise. See guides/guide-025-workflow-linting.md § Shellcheck.
+        run: ${{ steps.get_actionlint.outputs.executable }} -color -shellcheck='shellcheck --severity=warning'
+        shell: bash

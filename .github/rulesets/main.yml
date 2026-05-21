@@ -1,0 +1,17 @@
+# Per-repo ruleset override for maritime-ui-react.
+#
+# Inherits the org-wide baseline (Verify ruleset matches main.yml + PR rule
+# + bypass actors + deletion/non_fast_forward) from baseline.yml. Adds the
+# primary CI gate "CI / validate" reported by .github/workflows/ci.yml.
+#
+# See guides/guide-027-governance-as-code.md.
+
+extends: org-baseline
+
+rules:
+  - type: required_status_checks
+    parameters:
+      strict_required_status_checks_policy: false
+      do_not_enforce_on_create: false
+      required_status_checks:
+        - context: 'CI / validate'

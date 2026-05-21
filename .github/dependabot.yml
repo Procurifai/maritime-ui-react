@@ -1,0 +1,95 @@
+# Dependabot configuration template for Procurifai SERVICE and FRONTEND repos.
+# (For CLI repos like procurifai-cli/lop-cli, use dependabot-cli-template.yml instead.)
+#
+# Copy to {repo}/.github/dependabot.yml. Customize the per-repo `ignore:` matrix
+# per the migration-gated rule in guide-022. Keep cooldown/grouping/labels intact.
+#
+# Strategy reference: guides/guide-022-dependency-management.md
+# Parity enforcement: /review-code Rule 22
+
+version: 2
+
+updates:
+  # Node.js dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Zurich' # CEE default — change per repo if maintainer is in a different TZ
+    open-pull-requests-limit: 10
+    cooldown:
+      semver-patch-days: 1 # patches usually security-driven; land same-day
+      semver-minor-days: 7 # let community shake out minor regressions
+      semver-major-days: 14 # let breaking changes be reported before adoption
+    groups:
+      production-minor-and-patch:
+        dependency-type: 'production'
+        update-types: ['minor', 'patch']
+      dev-minor-and-patch:
+        dependency-type: 'development'
+        update-types: ['minor', 'patch']
+      # Majors are intentionally NOT grouped — one PR per major so triage is per-bump.
+    # Migration-gated ignores. UNCOMMENT and customize per the matrix in guide-022.
+    # Each entry MUST link to an open roadmap task ID in the inline comment.
+    # Remove the entry in the same PR that lands the migration.
+    #   ignore:
+    #     - dependency-name: "vite"
+    #       versions: [">=6"]    # roadmap task 16ce5e2c-... (Vitest 1→4 migration)
+    #     - dependency-name: "vitest"
+    #       versions: [">=2"]    # roadmap task 16ce5e2c-... (Vitest 1→4 migration)
+    #     - dependency-name: "@vitest/coverage-v8"
+    #       versions: [">=2"]    # roadmap task 16ce5e2c-... (Vitest 1→4 migration)
+    #     - dependency-name: "@apollo/server"
+    #       versions: [">=5"]    # roadmap task cacaec16-... (Apollo Server v4→v5 migration)
+    #     - dependency-name: "astro"
+    #       versions: [">=6"]    # roadmap task e1277fce-... (Astro 5→6 migration)
+    # Note: GitHub's dependabot validator rejects an empty `ignore:` key (null).
+    # Either uncomment with at least one entry, or omit the key entirely.
+    registries:
+      - npm-github
+    labels:
+      - 'dependencies'
+
+  # GitHub Actions versions
+  # Note: dependabot doesn't support `cooldown` for the github-actions ecosystem.
+  # Actions ship versions less frequently and are usually safe to bump on release.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Zurich'
+    groups:
+      actions:
+        patterns: ['*']
+    labels:
+      - 'dependencies'
+      - 'ci'
+
+  # Uncomment for repos with Python sub-packages (platform-api/packages/platform-doc-kit, etc.):
+  # - package-ecosystem: "pip"
+  #   directory: "/packages/platform-doc-kit"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "06:00"
+  #     timezone: "Europe/Zurich"
+  #   cooldown:
+  #     semver-patch-days: 1
+  #     semver-minor-days: 7
+  #     semver-major-days: 14
+  #   groups:
+  #     pip-minor-and-patch:
+  #       update-types: ["minor", "patch"]
+  #   labels:
+  #     - "dependencies"
+
+registries:
+  npm-github:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: '${{secrets.GITHUB_TOKEN}}'
+    replaces-base: false
