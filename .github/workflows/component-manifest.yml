@@ -34,7 +34,9 @@ jobs:
         run: cp packages/maritime-ui/components.manifest.json /tmp/committed.json
 
       - name: Regenerate manifest
-        run: node scripts/build-component-manifest.mjs
+        run: |
+          node scripts/build-component-manifest.mjs
+          npx prettier --write packages/maritime-ui/components.manifest.json
 
       - name: Diff
         run: |

@@ -3,5 +3,6 @@ npx lint-staged
 # Regenerate component manifest if any .tsx in src/ changed.
 if git diff --cached --name-only | grep -qE '^packages/maritime-ui/src/.*\.tsx$'; then
   node scripts/build-component-manifest.mjs --strict
+  npx prettier --write packages/maritime-ui/components.manifest.json
   git add packages/maritime-ui/components.manifest.json
 fi
