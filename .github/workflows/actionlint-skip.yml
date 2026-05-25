@@ -1,0 +1,61 @@
+# actionlint-skip — no-op sibling of actionlint.yml.
+#
+# Copy to {repo}/.github/workflows/actionlint-skip.yml. Bootstrapped by
+# `apply-governance-baseline.py --bootstrap/--apply` alongside actionlint.yml,
+# actionlint-matcher.json, and (optionally) actionlint.yaml. Together they
+# form the canonical four-file unit per repo — see guide-025 § "Skip-sibling
+# for path-gated required checks (the four-file unit)".
+#
+# Strategy reference: guides/guide-025-workflow-linting.md
+# Parity enforcement: /review-code Rule 26
+#
+# Why this file exists: the org ruleset declares `Lint workflow YAML` as a
+# REQUIRED status check on every PR (baseline.yml). actionlint.yml has a
+# path filter on `.github/workflows/**` + `.github/actions/**` — PRs that
+# don't touch those paths never trigger it, so the required check never
+# reports and merge becomes structurally blocked.
+#
+# Fix: this skip-sibling fires on the INVERSE path set and reports the SAME
+# check name (`Lint workflow YAML`) as success. Every PR triggers exactly
+# one of the two — actionlint-touching PRs hit the real lint, everything
+# else hits this no-op. Net: the required check always reports, never blocks.
+#
+# Drift contract: keep `paths-ignore:` here in lockstep with actionlint.yml's
+# `paths:`. If you add a path to actionlint.yml's trigger, add the same path
+# to actionlint-skip.yml's `paths-ignore`. Otherwise PRs touching the new
+# path will trigger BOTH workflows (or NEITHER), and the required-check
+# reporting becomes ambiguous.
+#
+# Learning gETfFySbJSNBDraYxWui codified this pair as the canonical scaffold
+# output for any path-gated required check. The same pattern applies to any
+# future required-check workflow added via baseline.yml.
+
+name: actionlint-skip
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.github/actionlint.yaml'
+      - '.github/actionlint-matcher.json'
+
+permissions:
+  contents: read
+
+env:
+  # Mirrors actionlint.yml — kept in lockstep for org-wide convention parity.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  actionlint:
+    # The job NAME (`Lint workflow YAML`) MUST match actionlint.yml's job
+    # name exactly. GitHub uses the job's `name:` (not the job-key) as the
+    # check-rollup context. Same name → same check → satisfies the required
+    # status check entry in baseline.yml.
+    name: Lint workflow YAML
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op (path-ignored — not workflow-touching)
+        run: echo "skipped — non-workflow paths"
