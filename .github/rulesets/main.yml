@@ -2,7 +2,11 @@
 #
 # Inherits the org-wide baseline (Verify ruleset matches main.yml + PR rule
 # + bypass actors + deletion/non_fast_forward) from baseline.yml. Adds the
-# primary CI gate "CI / validate" reported by .github/workflows/ci.yml.
+# primary CI gate "validate" reported by .github/workflows/ci.yml.
+#
+# The context name is just `validate` (the job name) — NOT `CI / validate`
+# (which is how GitHub renders the check in the UI). Status-check contexts
+# match the job name only.
 #
 # See guides/guide-027-governance-as-code.md.
 
@@ -14,4 +18,4 @@ rules:
       strict_required_status_checks_policy: false
       do_not_enforce_on_create: false
       required_status_checks:
-        - context: 'CI / validate'
+        - context: 'validate'
