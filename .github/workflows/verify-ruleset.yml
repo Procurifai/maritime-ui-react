@@ -8,12 +8,29 @@
 # Parity enforcement: /review-code Rule 29
 #
 # Triggers:
-#   - pull_request — fires on EVERY PR (no path filter). The workflow is itself
-#     a required status check via baseline.yml, so it must report on every PR
-#     or merges sit in "Expected — Waiting for status" forever.
+#   - pull_request — fires from PR HEAD commit. Normal path on PRs whose HEAD
+#     already includes this workflow file.
+#   - pull_request_target — race-condition guard. Fires from BASE REF's tree
+#     (main), so the workflow definition that runs is always main's version
+#     regardless of whether PR HEAD includes the file. Closes the structural
+#     race where a PR opened BEFORE this workflow was added to a repo could
+#     never produce the required `Verify ruleset matches main.yml` check.
+#     Demonstrated: PR people-api#30 (2026-05-17, 65-second race between
+#     PR HEAD authoring and verify-ruleset.yml landing on main — required
+#     admin-override to merge). See guide-027 § "Race condition: required
+#     checks added to existing repos".
 #   - cron (Monday 07:00 UTC) — passive drift detection for repos with no PR
 #     activity.
 #   - workflow_dispatch — manual re-run.
+#
+# Security rationale for pull_request_target: workflow is READ-ONLY. The
+# `permissions:` block grants `contents: read` only; no project secrets are
+# referenced beyond GITHUB_TOKEN; the Python script body lives in the workflow
+# YAML heredoc (runs from main when triggered via pull_request_target, not
+# from PR HEAD); PR HEAD's `.github/rulesets/main.yml` is read as YAML data,
+# never executed. No PR-supplied code path executes with elevated trust.
+# See guide-027 § "When to use pull_request_target in YOUR workflow" for the
+# 3-condition safe-use checklist.
 #
 # Check semantic: FULL EQUALITY between the merged YAML (baseline + override)
 # and live ruleset's `required_status_checks` contexts. Live having extras OR
@@ -30,7 +47,8 @@
 name: verify-ruleset
 
 on:
-  pull_request: # every PR — required check per baseline.yml
+  pull_request: # normal path — runs from PR HEAD's tree
+  pull_request_target: # race-condition guard — runs from base ref's workflow file
   schedule:
     - cron: '0 7 * * 1' # Monday 07:00 UTC
   workflow_dispatch:
@@ -38,12 +56,35 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # Group per-PR runs so concurrent ones serialize. pull_request and
+  # pull_request_target both fire on PRs whose HEAD includes the workflow
+  # file. Both runs execute the SAME workflow logic (identical Python
+  # script body), so both pass deterministically. We deliberately do NOT
+  # use `cancel-in-progress: true` because GitHub treats a CANCELLED run
+  # as a failed required-status-check entry — even when its sibling pass
+  # exists under the same context name (mergeStateStatus: BLOCKED).
+  # Letting both complete produces two SUCCESS reports under the same
+  # check name; GitHub dedups in the rollup. Cost: ~10s × 2 = 20s extra
+  # CI minutes per PR, trivial.
+  #
+  # R1 mitigation from plan optimized-jumping-teapot.md (post-deploy on
+  # PR #214 confirmed cancel-in-progress was the wrong choice).
+  group: verify-ruleset-${{ github.event.pull_request.number || github.run_id }}
+
 jobs:
   verify:
     name: Verify ruleset matches main.yml
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # For pull_request_target the default checkout is base; we want PR
+          # HEAD to validate the PR's main.yml against live state. For
+          # pull_request the head.sha falls back via the OR so the default
+          # behavior is preserved (head.sha resolves to the same sha that
+          # pull_request would have checked out by default).
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
