@@ -77,7 +77,7 @@ jobs:
     name: Verify ruleset matches main.yml
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # For pull_request_target the default checkout is base; we want PR
           # HEAD to validate the PR's main.yml against live state. For
