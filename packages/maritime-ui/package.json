@@ -1,6 +1,6 @@
 {
   "name": "@procurifai/maritime-ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Pure React + Tailwind components for maritime, bridge, and operations UIs. Clean-room rewrite of the OpenBridge design language.",
   "keywords": [
     "react",
